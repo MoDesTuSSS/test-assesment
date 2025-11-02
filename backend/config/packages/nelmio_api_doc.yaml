@@ -1,0 +1,72 @@
+nelmio_api_doc:
+    documentation:
+        info:
+            title: News Management System API
+            description: RESTful API for managing news articles
+            version: 1.0.0
+        servers:
+            - url: http://localhost:8000
+              description: Development server
+        components:
+            schemas:
+                News:
+                    type: object
+                    properties:
+                        id:
+                            type: integer
+                            example: 1
+                        title:
+                            type: string
+                            example: "Breaking News"
+                        body:
+                            type: string
+                            example: "Article content..."
+                        image:
+                            type: string
+                            nullable: true
+                            example: "/uploads/image.jpg"
+                        createdAt:
+                            type: string
+                            format: date-time
+                            example: "2025-11-02 10:30:00"
+                        updatedAt:
+                            type: string
+                            format: date-time
+                            example: "2025-11-02 10:30:00"
+                CreateNews:
+                    type: object
+                    required:
+                        - title
+                        - body
+                    properties:
+                        title:
+                            type: string
+                            minLength: 3
+                            maxLength: 255
+                            example: "New Article"
+                        body:
+                            type: string
+                            example: "Article content..."
+                        image:
+                            type: string
+                            nullable: true
+                            example: "/uploads/image.jpg"
+                UpdateNews:
+                    type: object
+                    properties:
+                        title:
+                            type: string
+                            minLength: 3
+                            maxLength: 255
+                            example: "Updated Title"
+                        body:
+                            type: string
+                            example: "Updated content..."
+                        image:
+                            type: string
+                            nullable: true
+                            example: "/uploads/new-image.jpg"
+    areas:
+        path_patterns:
+            - ^/api(?!/doc$)
+

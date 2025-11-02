@@ -1,0 +1,12 @@
+# OpenAPI JSON specification
+app.swagger_json:
+    path: /api/doc.json
+    methods: GET
+    defaults: { _controller: nelmio_api_doc.controller.swagger }
+
+# For backward compatibility, also serve JSON at /api/doc
+app.swagger:
+    path: /api/doc
+    methods: GET
+    defaults: { _controller: nelmio_api_doc.controller.swagger }
+

@@ -1,0 +1,96 @@
+services:
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: news_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-news_db}
+      MYSQL_USER: ${MYSQL_USER:-symfony_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-symfony_pass}
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - news_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend (Symfony + PHP)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: news_backend
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./backend:/var/www/html
+      - vendor_data:/var/www/html/vendor
+    environment:
+      DATABASE_URL: mysql://${MYSQL_USER:-symfony_user}:${MYSQL_PASSWORD:-symfony_pass}@db:3306/${MYSQL_DATABASE:-news_db}?serverVersion=8.0
+      APP_ENV: dev
+      APP_SECRET: ${APP_SECRET:-change_me_in_production}
+    ports:
+      - "8000:8000"
+    networks:
+      - news_network
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "
+        if [ ! -f composer.json ]; then
+          echo 'Initializing Symfony project...'
+          composer create-project symfony/skeleton:"6.4.*" tmp
+          mv tmp/* tmp/.* . 2>/dev/null || true
+          rm -rf tmp
+          composer require webapp
+          composer require symfony/orm-pack
+          composer require --dev symfony/maker-bundle
+          composer require nelmio/cors-bundle
+          composer require symfony/serializer-pack
+          composer require symfony/validator
+        fi
+        composer install
+        php bin/console doctrine:database:create --if-not-exists || true
+        php bin/console doctrine:schema:update --force || true
+        php bin/console cache:clear
+        php -S 0.0.0.0:8000 -t public/ public/router.php
+      "
+
+  # Frontend (React + Vite)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: news_frontend
+    restart: unless-stopped
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000/api
+    ports:
+      - "5173:5173"
+    networks:
+      - news_network
+    depends_on:
+      - backend
+
+networks:
+  news_network:
+    driver: bridge
+
+volumes:
+  db_data:
+    driver: local
+  vendor_data:
+    driver: local
+
